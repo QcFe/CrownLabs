@@ -72,30 +72,30 @@ jobs:
         with:
           ref: ${{ steps.configure.outputs.ref }}
           persist-credentials: false
-
-      - name: Retrieve the build matrix
-        id: build-matrix
-        uses: ./.github/actions/retrieve-build-matrix
-        with:
-          path: .github/workflows/build-matrix.json
-          filterOptional: ${{ steps.configure.outputs.filter-optional-images }}
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: configure
-
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.configure.outputs.build-matrix) }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ needs.configure.outputs.ref }}
-          persist-credentials: false
-
+#
+#      - name: Retrieve the build matrix
+#        id: build-matrix
+#        uses: ./.github/actions/retrieve-build-matrix
+#        with:
+#          path: .github/workflows/build-matrix.json
+#          filterOptional: ${{ steps.configure.outputs.filter-optional-images }}
+#
+#  build:
+#    name: Build
+#    runs-on: ubuntu-latest
+#    needs: configure
+#
+#    strategy:
+#      fail-fast: false
+#      matrix: ${{ fromJson(needs.configure.outputs.build-matrix) }}
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#        with:
+#          ref: ${{ needs.configure.outputs.ref }}
+#          persist-credentials: false
+#
 #      - name: Set up Docker Buildx
 #        uses: docker/setup-buildx-action@v1
 #
@@ -222,7 +222,7 @@ jobs:
       contents: write
     needs:
       - configure
-      - build
+#      - build
     if: |
       needs.configure.outputs.version != '' &&
       needs.configure.outputs.repo-push == 'true'
@@ -285,11 +285,12 @@ jobs:
               --index-path index.yaml \
               --pages-index-path index.yaml \
               --push
-
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v1
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
-          event-type: release-event
-          client-payload: '{"version": "${{ needs.configure.outputs.version }}"}'
+#
+#      - name: Notify Event to CrownOps
+#        uses: peter-evans/repository-dispatch@v1
+#        with:
+#          token: ${{ secrets.CI_TOKEN }}
+#          repository: netgroup-polito/CrownOps
+#          event-type: release-event
+#          client-payload: '{"version": "${{ needs.configure.outputs.version }}"}'
+#
