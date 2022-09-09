@@ -96,124 +96,124 @@ jobs:
           ref: ${{ needs.configure.outputs.ref }}
           persist-credentials: false
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v1
+#
+#      - name: Cache Docker layers
+#        uses: actions/cache@v2
+#        with:
+#          path: /tmp/.buildx-cache
+#          # The cache key is composed of the combination of the component name, the hash of the files in the build context and the hash of the commit.
+#          # Example: Linux-instance-operator-buildx-78702f5342c365de6dec21db1910023b19d0c56b3e3187ac860131d88ac24498-3e0fbf49898789ec0ff0f78272dd0a7703389810
+#          # The hash of the files in the context guarantees that a match is always found if no files of the component are modified, while the commit hash
+#          # guarantees uniqueness of the name, to ensure the cache is always updated (i.e. to prevent issues if the base image changes).
+#          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-${{ github.sha }}
+#          restore-keys: |
+#            ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-
+#            ${{ runner.os }}-${{ matrix.component }}-buildx-
+#
+#      - name: Login to DockerHub
+#        uses: docker/login-action@v1
+#        with:
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_PASSWORD }}
+#        if: needs.configure.outputs.repo-push == 'true'
+#
+#      - name: Login to Harbor
+#        uses: docker/login-action@v1
+#        with:
+#          registry: https://${{ secrets.HARBOR_REGISTRY_URL }}
+#          username: ${{ secrets.HARBOR_REGISTRY_USERNAME }}
+#          password: ${{ secrets.HARBOR_REGISTRY_PASSWORD }}
+#        if: needs.configure.outputs.repo-push == 'true'
+#
+#      - name: Configure the build-push-action parameters
+#        id: parameters
+#        env:
+#          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+#          HARBOR_REGISTRY_URL: ${{ secrets.HARBOR_REGISTRY_URL }}
+#        run: |
+#          echo "::set-output name=repo-owner::${DOCKER_USERNAME:-crownlabs}"
+#          echo "::set-output name=repo-name::${{ matrix.component }}${{ needs.configure.outputs.repo-suffix }}"
+#          echo "::set-output name=harbor-registry::${HARBOR_REGISTRY_URL:-harbor.local}"
+#
+#          [[ -n "${{ matrix.dockerfile }}" ]] && \
+#            echo "::set-output name=dockerfile::${{ matrix.dockerfile }}" || \
+#            echo "::set-output name=dockerfile::${{ matrix.context }}/Dockerfile"
+#
+#      - name: Build and Push the ${{ matrix.component }} image
+#        uses: docker/build-push-action@v2
+#        with:
+#          tags: |
+#            ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+#          # ${{ steps.parameters.outputs.harbor-registry }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+#          push: ${{ needs.configure.outputs.repo-push }}
+#          file: ${{ steps.parameters.outputs.dockerfile }}
+#          context: ${{ matrix.context }}
+#          build-args: ${{ matrix.build-args }}
+#          cache-from: type=gha, scope=${{ github.workflow }}
+#          cache-to: type=gha, scope=${{ github.workflow }}
 
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          # The cache key is composed of the combination of the component name, the hash of the files in the build context and the hash of the commit.
-          # Example: Linux-instance-operator-buildx-78702f5342c365de6dec21db1910023b19d0c56b3e3187ac860131d88ac24498-3e0fbf49898789ec0ff0f78272dd0a7703389810
-          # The hash of the files in the context guarantees that a match is always found if no files of the component are modified, while the commit hash
-          # guarantees uniqueness of the name, to ensure the cache is always updated (i.e. to prevent issues if the base image changes).
-          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-
-            ${{ runner.os }}-${{ matrix.component }}-buildx-
+#  trigger-events-master:
+#    name: Trigger events upon successful push to master
+#    runs-on: ubuntu-latest
+#    needs:
+#      - configure
+#      - build
+#    if: |
+#      github.event_name == 'push' &&
+#      github.ref == 'refs/heads/master' &&
+#      needs.configure.outputs.repo-push == 'true'
+#
+#    steps:
+#      - name: Send the Slack notification
+#        uses: 8398a7/action-slack@v3.8.0
+#        with:
+#          status: ${{ job.status }}
+#          author_name: CrownLabs CI
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+#        if: always()
+#
+#      - name: Notify Event to CrownOps
+#        uses: peter-evans/repository-dispatch@v1
+#        with:
+#          token: ${{ secrets.CI_TOKEN }}
+#          repository: netgroup-polito/CrownOps
+#          event-type: preprod-event
+#          client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-        if: needs.configure.outputs.repo-push == 'true'
-
-      - name: Login to Harbor
-        uses: docker/login-action@v1
-        with:
-          registry: https://${{ secrets.HARBOR_REGISTRY_URL }}
-          username: ${{ secrets.HARBOR_REGISTRY_USERNAME }}
-          password: ${{ secrets.HARBOR_REGISTRY_PASSWORD }}
-        if: needs.configure.outputs.repo-push == 'true'
-
-      - name: Configure the build-push-action parameters
-        id: parameters
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          HARBOR_REGISTRY_URL: ${{ secrets.HARBOR_REGISTRY_URL }}
-        run: |
-          echo "::set-output name=repo-owner::${DOCKER_USERNAME:-crownlabs}"
-          echo "::set-output name=repo-name::${{ matrix.component }}${{ needs.configure.outputs.repo-suffix }}"
-          echo "::set-output name=harbor-registry::${HARBOR_REGISTRY_URL:-harbor.local}"
-
-          [[ -n "${{ matrix.dockerfile }}" ]] && \
-            echo "::set-output name=dockerfile::${{ matrix.dockerfile }}" || \
-            echo "::set-output name=dockerfile::${{ matrix.context }}/Dockerfile"
-
-      - name: Build and Push the ${{ matrix.component }} image
-        uses: docker/build-push-action@v2
-        with:
-          tags: |
-            ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
-          # ${{ steps.parameters.outputs.harbor-registry }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
-          push: ${{ needs.configure.outputs.repo-push }}
-          file: ${{ steps.parameters.outputs.dockerfile }}
-          context: ${{ matrix.context }}
-          build-args: ${{ matrix.build-args }}
-          cache-from: type=gha, scope=${{ github.workflow }}
-          cache-to: type=gha, scope=${{ github.workflow }}
-
-  trigger-events-master:
-    name: Trigger events upon successful push to master
-    runs-on: ubuntu-latest
-    needs:
-      - configure
-      - build
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      needs.configure.outputs.repo-push == 'true'
-
-    steps:
-      - name: Send the Slack notification
-        uses: 8398a7/action-slack@v3.8.0
-        with:
-          status: ${{ job.status }}
-          author_name: CrownLabs CI
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-        if: always()
-
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v1
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
-          event-type: preprod-event
-          client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
-
-  trigger-events-deploy-staging:
-    name: Trigger events upon /deploy-staging comment
-    runs-on: ubuntu-latest
-    needs:
-      - configure
-      - build
-    if: |
-      github.event_name == 'repository_dispatch' &&
-      needs.configure.outputs.repo-push == 'true'
-
-    steps:
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v1
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
-          event-type: deploy-staging-event
-          client-payload: |
-            {
-              "repository": "${{ github.repository }}",
-              "pr-number": "${{ github.event.client_payload.github.payload.issue.number }}",
-              "tag": "${{ needs.configure.outputs.ref }}"
-            }
-
-      - name: Report status as reaction
-        uses: peter-evans/create-or-update-comment@v1
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reactions: "hooray"
+#  trigger-events-deploy-staging:
+#    name: Trigger events upon /deploy-staging comment
+#    runs-on: ubuntu-latest
+#    needs:
+#      - configure
+#      - build
+#    if: |
+#      github.event_name == 'repository_dispatch' &&
+#      needs.configure.outputs.repo-push == 'true'
+#
+#    steps:
+#      - name: Notify Event to CrownOps
+#        uses: peter-evans/repository-dispatch@v1
+#        with:
+#          token: ${{ secrets.CI_TOKEN }}
+#          repository: netgroup-polito/CrownOps
+#          event-type: deploy-staging-event
+#          client-payload: |
+#            {
+#              "repository": "${{ github.repository }}",
+#              "pr-number": "${{ github.event.client_payload.github.payload.issue.number }}",
+#              "tag": "${{ needs.configure.outputs.ref }}"
+#            }
+#
+#      - name: Report status as reaction
+#        uses: peter-evans/create-or-update-comment@v1
+#        with:
+#          token: ${{ secrets.CI_TOKEN }}
+#          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+#          reactions: "hooray"
 
   release:
     name: Create a new CrownLabs release
